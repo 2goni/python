@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import json
 import dload
+import re
 
 client_id = "FbRhzsAy9wRbOgSRpXRu"
 client_secret = "fYyw5DbXZg"
@@ -67,8 +68,14 @@ print("%s_naver_%s.json Saved" %(srcTxt, type))
 for image in jsonResult : 
     idx = image["idx"]
     link = image['link']
-    dload.save(link, "./image/%d.jpg" % (idx))
-    print("%d.jpg 다운로드완료" %(idx))
+    m = re.search(r"\.(\w+)$",link)
+    if m :
+        fileType = m.group(1)
+    else :
+        fileType = "jpg"
+
+    dload.save(link, "./image/%d.%s" % (idx, fileType))
+    print("%d.%s 다운로드완료" %(idx, fileType))
 
 
 #csv 파일로 만들기

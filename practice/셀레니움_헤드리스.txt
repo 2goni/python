@@ -1,0 +1,4 @@
+options = webdriver.ChromeOptions()
+options.headless = True
+options.add_argument("window-size=1920x1080")
+wd = webdriver.Chrome('chromedriver.exe', options=options)

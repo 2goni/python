@@ -10,6 +10,8 @@
 #토픽모델링 - 문서를 구성하는 키워드 기반으로 토픽 추출
 
 import os
+
+from scipy.sparse.construct import random
 os.environ["PYTHONENCODING"] = "utf-8"
 import warnings
 warnings.filterwarnings(action= 'ignore')
@@ -50,3 +52,49 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 tfidf = TfidfVectorizer(tokenizer = okt_tokenizer, ngram_range=(1,2), min_df=3, max_df= 0.9)
 tfidf.fit(nsmc_train_df['document'])
 nsmc_train_tfidf = tfidf.transform(nsmc_train_df["document"])
+print("dd")
+
+#감성 분류 모델 구축 : 로지스틱 회귀를 이용한 이진 분류
+from sklearn.linear_model import LogisticRegression
+
+lr = LogisticRegression(random_state=0)
+lr.fit(nsmc_train_tfidf, nsmc_train_df["label"])
+
+# 로지스틱 회귀의 best 하이퍼 파라미터
+from sklearn.model_selection import GridSearchCV
+params = {"C": [1,3,3.5,4,4.5,5]}
+lr_grid_cv = GridSearchCV(lr, param_grid=params, cv=3, scoring= "accuracy", verbose=1)
+
+#최적 분석 모델 훈련
+lr_grid_cv.fit(nsmc_train_tfidf, nsmc_train_df["label"])
+print(lr_grid_cv.best_params_, round(lr_grid_cv.best_score_,4))
+
+#최적 파라미터 저장
+lr_best = lr_grid_cv.best_estimator_
+
+#4) 분석 모델 평가
+nsmc_test_tfidf = tfidf.transform(nsmc_test_df["document"])
+test_predict = lr_best.predict(nsmc_test_tfidf)
+
+from sklearn.metrics import accuracy_score
+print("감성 분석 정확도 : ", round(accuracy_score(nsmc_test_df["label"], test_predict), 3))
+
+#새로운 텍스트에대한 감성 예측
+
+tempStr = input("감성 분석할 문장 입력 >>")
+tempStr = re.compile(r'[ㄱ-ㅎ|가-힣|ㅏ-ㅣ]+').findall(tempStr)
+print(tempStr)
+tempStr = [" ".join(tempStr)]
+print(tempStr)
+
+#1) 입력 데이터의 피처 백터화
+st_tfidf = tfidf.transform(tempStr)
+
+#2) 최적 감정분석 모델에 적용하여 감성분석 평가
+st_predict = lr_best.predict(st_tfidf)
+
+#3) 예측값 출력하기
+if st_predict == 0 :
+    print(tempStr, "->>부정 감성")
+else :
+    print(tempStr, "->>긍정 감성")
